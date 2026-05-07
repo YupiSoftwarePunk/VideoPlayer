@@ -14,9 +14,15 @@ namespace server
     {
         public static void Main(string[] args)
         {
+            DotNetEnv.Env.Load();
+
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
+            var jwtKey = Environment.GetEnvironmentVariable("JWT_KEY")
+                         ?? throw new Exception("JWT_KEY not found in .env");
+            var connectionString = Environment.GetEnvironmentVariable("DB_CONNECTION")
+                         ?? throw new Exception("DB_CONNECTION not found in .env");
+
 
             builder.Services.AddControllers();
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
@@ -30,14 +36,10 @@ namespace server
                     ValidateIssuer = false,
                     ValidateAudience = false,
                     ValidateLifetime = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("super-secret-key-at-least-32-chars-long!!"))
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
                 };
             });
             builder.Services.AddAuthorization();
-
-
-            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-            ?? "Host=localhost;Database=videohosting_db;Username=postgres;Password=C0d38_50AdM1Nn6";
 
             builder.Services.AddDbContext<AppDbContext>(options =>
                 options.UseNpgsql(connectionString));
@@ -55,7 +57,7 @@ namespace server
                 var user = new User
                 {
                     Username = dto.Username,
-                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password), // Нужен пакет BCrypt.Net-Next
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
                     Role = "User"
                 };
                 db.Users.Add(user);
@@ -67,19 +69,16 @@ namespace server
                 var user = await db.Users.FirstOrDefaultAsync(u => u.Username == dto.Username);
                 if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash)) return Results.Unauthorized();
 
-                // Генерация токена (упрощенно для MVP)
-                var token = GenerateJwtToken(user); // Реализуй этот метод для выдачи строки токена
+                var token = GenerateJwtToken(user, jwtKey);
                 return Results.Ok(new { token });
             });
 
             // Видео
             var videos = app.MapGroup("/videos").RequireAuthorization();
 
-            // Получить список доступных видео
             videos.MapGet("/", async (AppDbContext db) =>
                 await db.Videos.Where(v => !v.IsRestricted).Include(v => v.Author).ToListAsync());
 
-            // Загрузка видео (Multipart)
             videos.MapPost("/upload", async (HttpContext context, AppDbContext db, ClaimsPrincipal user) => {
                 var form = await context.Request.ReadFormAsync();
                 var file = form.Files.GetFile("video");
@@ -160,7 +159,7 @@ namespace server
             app.Run();
         }
 
-        private static object GenerateJwtToken(User user)
+        private static string GenerateJwtToken(User user, string jwtKey)
         {
             var claims = new[]
             {
@@ -169,11 +168,11 @@ namespace server
                 new Claim(ClaimTypes.Role, user.Role)
             };
 
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("super-secret-key-at-least-32-chars-long!!"));
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var token = new JwtSecurityToken(
-                issuer: null, 
+                issuer: null,
                 audience: null,
                 claims: claims,
                 expires: DateTime.UtcNow.AddDays(7),
