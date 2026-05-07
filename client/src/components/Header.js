@@ -1,6 +1,7 @@
 import { Button } from './Button.js';
 import { authService } from '../utils/Aauth.js';
 import { AuthModal } from '../features/AuthModal.js';
+import { UploadModal } from '../features/UploadModal.js';
 
 export const Header = () => {
     const header = document.createElement('header');
@@ -17,7 +18,10 @@ export const Header = () => {
     const user = authService.getUser();
 
     if (authService.isLoggedIn() && user) {
-        container.appendChild(Button('Загрузить', () => console.log('Open Upload Modal'), 'primary'));
+        container.appendChild(Button('Загрузить', async () => { 
+            const modal = await UploadModal();
+            document.body.appendChild(modal);
+        }, 'primary'));
 
         if (user.role === 'Admin') {
             container.appendChild(Button('Админ панель', () => console.log('Admin Panel Clicked'), 'secondary', 'bg-neo-warning'));
