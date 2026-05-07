@@ -44,8 +44,18 @@ namespace server
             builder.Services.AddDbContext<AppDbContext>(options =>
                 options.UseNpgsql(connectionString));
 
+            builder.Services.AddCors(options => options.AddPolicy("AllowVite",
+                p => p.WithOrigins("http://localhost:5173").AllowAnyMethod().AllowAnyHeader()));
+
 
             var app = builder.Build();
+
+            app.UseCors("AllowVite");
+            app.UseStaticFiles();
+
+
+            var uploadPath = Path.Combine(app.Environment.WebRootPath ?? "wwwroot", "uploads");
+            if (!Directory.Exists(uploadPath)) Directory.CreateDirectory(uploadPath);
 
 
             var auth = app.MapGroup("/auth");
@@ -73,11 +83,24 @@ namespace server
                 return Results.Ok(new { token });
             });
 
+
             // Видео
             var videos = app.MapGroup("/videos").RequireAuthorization();
 
-            videos.MapGet("/", async (AppDbContext db) =>
-                await db.Videos.Where(v => !v.IsRestricted).Include(v => v.Author).ToListAsync());
+            videos.MapGet("/", async (AppDbContext db) => {
+                return await db.Videos
+                    .Where(v => !v.IsRestricted)
+                    .Select(v => new {
+                        v.Id,
+                        v.Title,
+                        Url = $"/uploads/{v.FileName}",
+                        Author = v.Author.Username,
+                        Likes = v.Reactions.Count(r => r.IsLike),
+                        Dislikes = v.Reactions.Count(r => !r.IsLike),
+                        CommentsCount = v.Comments.Count
+                    })
+                    .ToListAsync();
+            });
 
             videos.MapPost("/upload", async (HttpContext context, AppDbContext db, ClaimsPrincipal user) => {
                 var form = await context.Request.ReadFormAsync();
@@ -125,6 +148,25 @@ namespace server
                 return Results.Ok();
             });
 
+            videos.MapDelete("/{id}", async (int id, AppDbContext db, ClaimsPrincipal user) => {
+                var video = await db.Videos.FindAsync(id);
+                if (video == null) return Results.NotFound();
+
+                var userId = int.Parse(user.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+                var userRole = user.FindFirst(ClaimTypes.Role)!.Value;
+
+                if (video.AuthorId != userId && userRole != "Admin")
+                    return Results.Forbid();
+
+                var path = Path.Combine("wwwroot/uploads", video.FileName);
+                if (File.Exists(path)) File.Delete(path);
+
+                db.Videos.Remove(video);
+                await db.SaveChangesAsync();
+                return Results.NoContent();
+            });
+
+
             // админка
             var admin = app.MapGroup("/admin").RequireAuthorization(policy => policy.RequireRole("Admin"));
 
@@ -155,6 +197,23 @@ namespace server
 
 
             app.MapControllers();
+
+
+            app.Use(async (context, next) =>
+            {
+                try
+                {
+                    Console.WriteLine($"{context.Request.Method} {context.Request.Path}");
+                    await next.Invoke();
+                    Console.WriteLine($"{context.Response.StatusCode}");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"CRITICAL ERROR: {ex.Message}");
+                    context.Response.StatusCode = 500;
+                    await context.Response.WriteAsJsonAsync(new { error = "Internal Server Error" });
+                }
+            });
 
             app.Run();
         }
