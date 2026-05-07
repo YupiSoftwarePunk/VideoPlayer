@@ -2,6 +2,7 @@ import { Button } from './Button.js';
 import { authService } from '../utils/Aauth.js';
 import { AuthModal } from '../features/AuthModal.js';
 import { UploadModal } from '../features/UploadModal.js';
+import { AdminModal } from '../features/AdminModal.js';
 
 export const Header = () => {
     const header = document.createElement('header');
@@ -24,7 +25,10 @@ export const Header = () => {
         }, 'primary'));
 
         if (user.role === 'Admin') {
-            container.appendChild(Button('Админ панель', () => console.log('Admin Panel Clicked'), 'secondary', 'bg-neo-warning'));
+            container.appendChild(Button('Админ панель', async () => {
+                const modal = await AdminModal();
+                document.body.appendChild(modal);
+            }, 'secondary', 'bg-neo-warning'));
         }
 
         container.appendChild(Button('Выйти', () => authService.logout(), 'secondary'));

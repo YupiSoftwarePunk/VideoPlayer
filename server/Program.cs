@@ -185,6 +185,19 @@ namespace server
                 return Results.Ok("Status updated");
             });
 
+            admin.MapGet("/videos/all", async (AppDbContext db) =>
+                await db.Videos
+                    .Include(v => v.Author) // Чтобы видеть никнейм автора
+                    .Select(v => new {
+                        v.Id,
+                        v.Title,
+                        v.IsRestricted,
+                        v.RestrictionReason,
+                        AuthorName = v.Author.Username,
+                        AuthorId = v.AuthorId
+                    })
+                    .ToListAsync());
+
 
 
             // Configure the HTTP request pipeline.

@@ -16,3 +16,24 @@ body {
     scrollbar-width: none;
   }
 }
+
+* {
+    box-sizing: border-box;
+}
+
+#modal-container {
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type=number] {
+  -moz-appearance: textfield;
+}
