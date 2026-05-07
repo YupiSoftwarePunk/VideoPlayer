@@ -49,17 +49,14 @@ export const AdminModal = async () => {
     const refreshBtnContainer = content.querySelector('#refresh-btn-container');
     const searchInput = content.querySelector('#user-id-search');
 
-    // Кнопка поиска
     searchBtnContainer.appendChild(Button('Найти ролики', async () => {
         loadVideos(`${API_BASE}/users/${searchInput.value}/videos`);
     }, 'primary', 'whitespace-nowrap h-full'));
 
-    // Кнопка "Показать все"
     refreshBtnContainer.appendChild(Button('Все видео', async () => {
         loadVideos(`${API_BASE}/videos/all`);
     }, 'secondary', 'w-full h-full bg-neo-surface'));
 
-    // Функция загрузки данных
     const loadVideos = async (url) => {
         videoList.innerHTML = '<div class="flex justify-center p-10"><p class="font-black animate-pulse">Загрузка...</p></div>';
         try {
@@ -74,9 +71,7 @@ export const AdminModal = async () => {
         }
     };
 
-    // Первичная загрузка всех видео
     loadVideos(`${API_BASE}/videos/all`);
-
     return Modal(content);
 };
 
@@ -108,8 +103,7 @@ function renderAdminVideos(videos, container) {
         `;
 
         const btnGroup = card.querySelector('.action-btns');
-        
-        // Кнопка бана
+
         const restrictBtn = Button(
             video.isRestricted ? 'Разбанить' : 'Ограничить', 
             () => toggleRestriction(video),
