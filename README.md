@@ -62,6 +62,7 @@ src/
 | **Videos** | `DELETE`| `/videos/{id}` | JWT | Удаление (доступно владельцу видео или админу) |
 | **Admin** | `GET` | `/admin/users/{id}/videos`| JWT (Admin) | Просмотр всех роликов пользователя для модерации |
 | **Admin** | `PATCH`| `/admin/videos/{id}/restrict`| JWT (Admin) | Бан видео (скрытие из общего доступа) с указанием причины |
+| **Admin** | `GET`| `/admin/videos/all`| JWT (Admin) | Показ всех видео от всех пользователей |
 
 ---
 
