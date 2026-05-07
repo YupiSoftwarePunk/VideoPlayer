@@ -14,14 +14,20 @@ export const Header = () => {
     `;
 
     const container = header.querySelector('#auth-buttons');
+    const user = authService.getUser();
 
-    if (authService.isLoggedIn()) {
-    container.appendChild(Button('Загрузить', () => console.log('Open Upload Modal'), 'primary'));
-    container.appendChild(Button('Выйти', () => authService.logout(), 'secondary'));
-    } 
+    if (authService.isLoggedIn() && user) {
+        container.appendChild(Button('Загрузить', () => console.log('Open Upload Modal'), 'primary'));
+
+        if (user.role === 'Admin') {
+            container.appendChild(Button('Админ панель', () => console.log('Admin Panel Clicked'), 'secondary', 'bg-neo-warning'));
+        }
+
+        container.appendChild(Button('Выйти', () => authService.logout(), 'secondary'));
+    }
     else {
-    container.appendChild(Button('Войти', () => document.body.appendChild(AuthModal('login')), 'secondary'));
-    container.appendChild(Button('Создать аккаунт', () => document.body.appendChild(AuthModal('register')), 'primary'));
+        container.appendChild(Button('Войти', () => document.body.appendChild(AuthModal('login')), 'secondary'));
+        container.appendChild(Button('Создать аккаунт', () => document.body.appendChild(AuthModal('register')), 'primary'));
     }
     return header;
 };
