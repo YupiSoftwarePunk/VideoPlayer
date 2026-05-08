@@ -97,7 +97,11 @@ namespace server
                         Author = v.Author.Username,
                         Likes = v.Reactions.Count(r => r.IsLike),
                         Dislikes = v.Reactions.Count(r => !r.IsLike),
-                        CommentsCount = v.Comments.Count
+                        CommentsCount = v.Comments.Count,
+                        Comments = v.Comments.Select(c => new {
+                            User = c.User.Username,
+                            Text = c.Text
+                        }).ToList()
                     })
                     .ToListAsync();
             });
@@ -187,7 +191,7 @@ namespace server
 
             admin.MapGet("/videos/all", async (AppDbContext db) =>
                 await db.Videos
-                    .Include(v => v.Author) // Чтобы видеть никнейм автора
+                    .Include(v => v.Author)
                     .Select(v => new {
                         v.Id,
                         v.Title,

@@ -68,3 +68,7 @@ body {
     display: none;
   }
 }
+
+.shadow-neo-active {
+    box-shadow: 0 0 0 #000 !important;
+}
